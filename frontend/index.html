@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Khalq Certificate Automation</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sage: #7aaa8a;
+    --sage-light: #c5dbc9;
+    --sage-dark: #4e7a5e;
+    --navy: #1a2340;
+    --cream: #f8f6f1;
+    --gold: #c9a84c;
+    --white: #ffffff;
+    --gray: #6b7280;
+    --border: #e2e8f0;
+    --danger: #e05c5c;
+    --success: #3d9970;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--navy); min-height: 100vh; }
+
+  /* ── Auth gate ── */
+  #authGate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--navy);
+    flex-direction: column;
+    gap: 0;
+  }
+  .auth-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 52px 48px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+  }
+  .auth-logo {
+    width: 72px; height: 72px;
+    border: 3px solid var(--sage);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    color: var(--sage-dark);
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 auto 24px;
+  }
+  .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 8px; }
+  .auth-card p { color: var(--gray); font-size: 0.9rem; margin-bottom: 32px; line-height: 1.6; }
+  .btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-google:hover { border-color: var(--sage); background: #f4faf6; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .auth-note { color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-top: 24px; }
+  .auth-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; color: #b91c1c; font-size: 0.85rem; margin-bottom: 20px; display:none; }
+
+  /* ── App shell ── */
+  #appShell { display: none; }
+
+  header {
+    background: var(--navy);
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+  }
+  .logo-circle {
+    width: 38px; height: 38px;
+    border: 2px solid var(--sage);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    color: var(--sage);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--white); font-weight: 600; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .user-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 100px;
+    padding: 6px 14px 6px 6px;
+  }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--sage); }
+  .user-name { color: rgba(255,255,255,0.85); font-size: 0.85rem; font-weight: 500; }
+  .btn-logout {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,0.2); color: white; }
+
+  .steps-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+  }
+  .step-btn {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--gray);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .step-btn.active { color: var(--sage-dark); border-bottom-color: var(--sage); background: #f0f7f2; }
+  .step-btn.done { color: var(--success); }
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .step-btn.active .step-num { background: var(--sage); color: white; }
+  .step-btn.done .step-num { background: var(--success); color: white; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+  .panel { display: none; animation: fadeUp 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 24px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+  }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .card-sub { font-size: 0.88rem; color: var(--gray); margin-bottom: 24px; line-height: 1.6; }
+
+  .upload-zone {
+    border: 2px dashed var(--sage);
+    border-radius: 12px;
+    padding: 52px 24px;
+    text-align: center;
+    background: #f4faf6;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover { background: #e8f5ec; border-color: var(--sage-dark); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .upload-zone p { font-size: 0.95rem; color: var(--gray); }
+
+  .canvas-wrapper { position: relative; display: inline-block; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 32px rgba(0,0,0,0.12); cursor: crosshair; max-width: 100%; }
+  #certCanvas { display: block; max-width: 100%; }
+  .click-hint { background: #fffbea; border: 1px solid #f0d060; border-radius: 8px; padding: 12px 16px; font-size: 0.85rem; color: #7a6010; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  .pos-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 0.82rem; font-weight: 600; color: var(--navy); letter-spacing: 0.04em; text-transform: uppercase; }
+  input[type=text], input[type=email], input[type=number], select, textarea {
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem;
+    color: var(--navy);
+    background: var(--white);
+    transition: border 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--sage); }
+  input[type=color] { width: 48px; height: 38px; padding: 2px 4px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; }
+
+  .style-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-top: 16px; }
+  .style-row .field-group { flex: 1; min-width: 100px; }
+
+  .vol-input-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 16px; }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+  .btn-primary { background: var(--sage); color: white; }
+  .btn-primary:hover:not(:disabled) { background: var(--sage-dark); transform: translateY(-1px); }
+  .btn-secondary { background: var(--white); color: var(--navy); border: 1.5px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--sage); color: var(--sage-dark); }
+  .btn-danger { background: #fef2f2; color: var(--danger); border: 1.5px solid #fecaca; }
+  .btn-danger:hover { background: var(--danger); color: white; }
+  .btn-lg { padding: 14px 32px; font-size: 1rem; border-radius: 10px; }
+  .btn-gold { background: var(--gold); color: white; }
+  .btn-gold:hover:not(:disabled) { background: #b8942a; transform: translateY(-1px); }
+  .btn-spin { position: relative; }
+  .btn-spin::after { content:''; width:16px; height:16px; border:2px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation: spin 0.7s linear infinite; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); }
+  @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  thead th { text-align: left; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray); padding: 10px 12px; border-bottom: 2px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: #f8fdf9; }
+  tbody td { padding: 10px 12px; font-size: 0.9rem; }
+  .tag-sent { background: #dcfce7; color: #166534; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .tag-pending { background: #fef9c3; color: #854d0e; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .tag-failed { background: #fef2f2; color: #b91c1c; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+
+  .send-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media(max-width:680px) { .send-grid { grid-template-columns: 1fr; } }
+
+  .progress-bar-wrap { background: var(--border); border-radius: 100px; height: 8px; margin-top: 8px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--sage); border-radius: 100px; transition: width 0.4s ease; width: 0%; }
+
+  .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+
+  #toast {
+    position: fixed; bottom: 32px; right: 32px;
+    background: var(--navy); color: white;
+    padding: 14px 22px; border-radius: 12px;
+    font-size: 0.9rem; font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s; z-index: 999; max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: var(--success); }
+  #toast.error { background: var(--danger); }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .divider span { font-size: 0.8rem; color: var(--gray); white-space: nowrap; }
+
+  .badge { display: inline-flex; align-items: center; justify-content: center; background: var(--sage); color: white; border-radius: 20px; font-size: 0.75rem; font-weight: 700; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 6px; }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--gray); font-size: 0.9rem; }
+  .empty-state .big { font-size: 2rem; margin-bottom: 8px; }
+
+  .api-url-note { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; font-size: 0.83rem; color: #166534; margin-bottom: 16px; }
+  .api-url-note code { background: #dcfce7; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+  .csv-hint { font-size: 0.8rem; color: var(--gray); margin-top: 8px; }
+
+  .result-row-sent { color: var(--success); }
+  .result-row-failed { color: var(--danger); }
+
+  @media(max-width:640px) { .vol-input-row { grid-template-columns: 1fr; } header { padding: 14px 16px; } main { padding: 20px 16px; } .step-btn { padding: 12px 14px; font-size: 0.8rem; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ AUTH GATE ═══════════ -->
+<div id="authGate">
+  <div class="auth-card">
+    <div class="auth-logo">خ</div>
+    <h2>Khalq HR Portal</h2>
+    <p>Certificate Automation System<br>Sign in with your Khalq Google account to continue.</p>
+    <div class="auth-error" id="authError"></div>
+    <a class="btn-google" id="loginBtn" href="#">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </a>
+  </div>
+  <p class="auth-note">Access restricted to authorised Khalq HR accounts only.</p>
+</div>
+
+<!-- ═══════════ APP SHELL ═══════════ -->
+<div id="appShell">
+  <header>
+    <div class="logo-circle">خ</div>
+    <h1>Khalq Certificate Automation</h1>
+    <div class="header-right">
+      <div class="user-pill">
+        <img class="user-avatar" id="userAvatar" src="" alt="">
+        <span class="user-name" id="userName"></span>
+      </div>
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <div class="steps-bar">
+    <button class="step-btn active" onclick="goStep(1)" id="stepbtn1"><span class="step-num">1</span> Upload Template</button>
+    <button class="step-btn" onclick="goStep(2)" id="stepbtn2"><span class="step-num">2</span> Position Name</button>
+    <button class="step-btn" onclick="goStep(3)" id="stepbtn3"><span class="step-num">3</span> Add Volunteers</button>
+    <button class="step-btn" onclick="goStep(4)" id="stepbtn4"><span class="step-num">4</span> Send Certificates</button>
+  </div>
+
+  <main>
+
+    <!-- STEP 1 -->
+    <div class="panel active" id="panel1">
+      <div class="card">
+        <div class="card-title">Upload Your Certificate Template</div>
+        <div class="card-sub">Upload the blank certificate image (PNG or JPG). The name placeholder area will be configured in the next step.</div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="templateInput" accept="image/*" onchange="handleTemplateUpload(this)">
+          <div class="upload-icon">🎓</div>
+          <p><strong>Click to browse</strong> or drag & drop your certificate template</p>
+          <p style="margin-top:6px;font-size:0.8rem;color:var(--gray);">PNG, JPG — high resolution recommended</p>
+        </div>
+        <div id="uploadPreview" style="display:none;margin-top:20px;">
+          <img id="previewImg" style="max-width:100%;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.1);">
+          <p style="margin-top:10px;font-size:0.85rem;color:var(--success);font-weight:600;">✓ Template loaded successfully</p>
+        </div>
+      </div>
+      <div class="nav-row">
+        <div></div>
+        <button class="btn btn-primary btn-lg" onclick="goStep(2)" id="nextStep1" disabled>Next: Position Name →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="panel" id="panel2">
+      <div class="card">
+        <div class="card-title">Position & Style the Name</div>
+        <div class="card-sub">Click anywhere on the certificate to set where the volunteer's name will appear.</div>
+        <div class="click-hint"><span>👆</span><span>Click on the certificate to place the name. Fine-tune position and style below.</span></div>
+        <div style="text-align:center;">
+          <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="certCanvas" onclick="handleCanvasClick(event)"></canvas>
+          </div>
+        </div>
+        <div class="style-row" style="margin-top:24px;">
+          <div class="field-group" style="flex:2;">
+            <label>Font Family</label>
+            <select id="fontFamily" onchange="redrawCanvas()">
+              <option value="'Playfair Display', serif">Playfair Display (Serif)</option>
+              <option value="Georgia, serif">Georgia (Classic)</option>
+              <option value="'Times New Roman', serif">Times New Roman</option>
+              <option value="Arial, sans-serif">Arial (Sans)</option>
+              <option value="'DM Sans', sans-serif">DM Sans (Modern)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Font Size (px)</label>
+            <input type="number" id="fontSize" value="60" min="12" max="200" oninput="redrawCanvas()">
+          </div>
+          <div class="field-group">
+            <label>Weight</label>
+            <select id="fontWeight" onchange="redrawCanvas()">
+              <option value="400">Regular</option>
+              <option value="600">Semi-Bold</option>
+              <option value="700" selected>Bold</option>
+              <option value="300">Light</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Color</label>
+            <input type="color" id="nameColor" value="#2d3a8c" oninput="redrawCanvas()">
+          </div>
+        </div>
+        <div class="pos-controls">
+          <div class="field-group">
+            <label>X Position (px)</label>
+            <input type="number" id="posX" placeholder="Auto center" oninput="redrawCanvas()">
+          </div>
+          <div class="field-group">
+            <label>Y Position (px)</label>
+            <input type="number" id="posY" placeholder="Auto" oninput="redrawCanvas()">
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;font-weight:500;text-transform:none;letter-spacing:0;">
+            <input type="checkbox" id="centerAlign" checked onchange="redrawCanvas()"> Center align name horizontally
+          </label>
+        </div>
+        <div style="margin-top:16px;">
+          <label>Preview Name</label>
+          <input type="text" id="previewName" value="Ayesha Qazi" oninput="redrawCanvas()">
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="goStep(3)">Next: Add Volunteers →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="panel" id="panel3">
+      <div class="card">
+        <div class="card-title">Add Volunteers <span class="badge" id="volCount">0</span></div>
+        <div class="card-sub">Enter each volunteer's name and email. Import a CSV for bulk entry.</div>
+        <div class="vol-input-row">
+          <div class="field-group">
+            <label>Full Name</label>
+            <input type="text" id="newName" placeholder="e.g. Ahmed Hassan" onkeydown="if(event.key==='Enter')addVolunteer()">
+          </div>
+          <div class="field-group">
+            <label>Email Address</label>
+            <input type="email" id="newEmail" placeholder="e.g. ahmed@example.com" onkeydown="if(event.key==='Enter')addVolunteer()">
+          </div>
+          <div class="field-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" onclick="addVolunteer()">+ Add</button>
+          </div>
+        </div>
+        <div class="divider"><span>or import from file</span></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          <label class="btn btn-secondary" style="cursor:pointer;">📂 Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCSV(this)"></label>
+          <button class="btn btn-secondary" onclick="downloadCSVTemplate()">⬇ CSV Template</button>
+        </div>
+        <p class="csv-hint">CSV format: <code>Name,Email</code> — one row per volunteer</p>
+        <div style="margin-top:24px;">
+          <div class="empty-state" id="emptyState"><div class="big">👥</div>No volunteers added yet.</div>
+          <table id="volTable" style="display:none;">
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
+            <tbody id="volTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="goStep(4)" id="nextStep3" disabled>Next: Send Certificates →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="panel" id="panel4">
+      <div class="card">
+        <div class="card-title">Send Certificates</div>
+        <div class="card-sub">Preview personalized certificates and send them to all volunteers in one click.</div>
+        <div class="send-grid">
+          <div>
+            <p style="font-size:0.85rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Certificate Preview</p>
+            <div style="border-radius:10px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.1);">
+              <canvas id="previewCanvas" style="width:100%;display:block;"></canvas>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="previewSelect" onchange="updatePreview()" style="flex:1;"></select>
+              <button class="btn btn-secondary" onclick="downloadCurrentCert()">⬇ Download</button>
+            </div>
+            <div style="margin-top:10px;">
+              <button class="btn btn-secondary" style="width:100%;" onclick="downloadAllCerts()">⬇ Download All (ZIP)</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="field-group">
+              <label>From Name</label>
+              <input type="text" id="fromName" value="Khalq Organization">
+            </div>
+            <div class="field-group">
+              <label>Email Subject</label>
+              <input type="text" id="emailSubject" value="Your Certificate of Appreciation — Khalq">
+            </div>
+            <div class="field-group">
+              <label>Email Body</label>
+              <textarea id="emailBody" rows="5" style="resize:vertical;">Dear {name},
+
+We are delighted to present your Certificate of Appreciation for your participation in the Khalq Community Development & Sustainability Event.
+
+Your contribution truly made a difference. Thank you!
+
+Warm regards,
+Khalq HR Team</textarea>
+              <p style="font-size:0.78rem;color:var(--gray);margin-top:4px;">Use <code>{name}</code> for the volunteer's name.</p>
+            </div>
+            <div style="padding-top:8px;border-top:1px solid var(--border);">
+              <button class="btn btn-gold btn-lg" style="width:100%;" onclick="sendAll()" id="sendBtn">
+                ✉️ Send Certificates to All Volunteers
+              </button>
+              <div style="margin-top:12px;display:none;" id="sendProgress">
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
+                  <span id="progressLabel">Sending...</span>
+                  <span id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="summaryCard" style="display:none;"></div>
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goStep(3)">← Back</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ── CONFIG — set this to your deployed Render backend URL ──────
+const API_BASE = window.KHALQ_API_URL || 'https://khalq-certificate-api.onrender.com';
+
+// ── State ──────────────────────────────────────────────────────
+let templateImg = null;
+let templateBase64 = null;
+let volunteers = [];
+let currentStep = 1;
+
+// ── Auth ───────────────────────────────────────────────────────
+async function checkAuth() {
+  try {
+    const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.authenticated) {
+      showApp(data.user);
+    } else {
+      showLogin();
+    }
+  } catch (e) {
+    // If API not reachable yet, check URL params for demo mode
+    showLogin();
+  }
+}
+
+function showLogin() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('error') === 'unauthorized') {
+    document.getElementById('authError').style.display = 'block';
+    document.getElementById('authError').textContent = 'Access denied. Only authorised Khalq accounts can log in.';
+  }
+  document.getElementById('authGate').style.display = 'flex';
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginBtn').href = `${API_BASE}/auth/login`;
+}
+
+function showApp(user) {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('appShell').style.display = 'block';
+  if (user) {
+    document.getElementById('userName').textContent = user.name || user.email;
+    if (user.picture) document.getElementById('userAvatar').src = user.picture;
+    else document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name||'K')}&background=7aaa8a&color=fff`;
+  }
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
+function logout() {
+  window.location.href = `${API_BASE}/auth/logout`;
+}
+
+// ── Step navigation ────────────────────────────────────────────
+function goStep(n) {
+  if (n === 2 && !templateImg) { toast('Please upload a certificate template first.', 'error'); return; }
+  if (n === 4 && volunteers.length === 0) { toast('Please add at least one volunteer first.', 'error'); return; }
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel' + n).classList.add('active');
+  document.querySelectorAll('.step-btn').forEach((b, i) => {
+    b.classList.remove('active', 'done');
+    if (i + 1 < n) b.classList.add('done');
+    if (i + 1 === n) b.classList.add('active');
+  });
+  currentStep = n;
+  if (n === 2) setTimeout(setupCanvas, 50);
+  if (n === 4) setupSendPanel();
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3500);
+}
+
+// ── Step 1 ─────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) loadTemplate(e.dataTransfer.files[0]); });
+
+function handleTemplateUpload(input) { if (input.files[0]) loadTemplate(input.files[0]); }
+
+function loadTemplate(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    templateBase64 = e.target.result;
+    templateImg = new Image();
+    templateImg.onload = () => {
+      document.getElementById('previewImg').src = templateBase64;
+      document.getElementById('uploadPreview').style.display = 'block';
+      document.getElementById('nextStep1').disabled = false;
+      toast('Template loaded!', 'success');
+    };
+    templateImg.src = templateBase64;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Step 2: Canvas ─────────────────────────────────────────────
+const canvas = document.getElementById('certCanvas');
+const ctx = canvas.getContext('2d');
+
+function setupCanvas() {
+  if (!templateImg) return;
+  canvas.width = templateImg.naturalWidth;
+  canvas.height = templateImg.naturalHeight;
+  if (!document.getElementById('posY').value) {
+    const y = Math.round(templateImg.naturalHeight * 0.48);
+    document.getElementById('posY').value = y;
+  }
+  redrawCanvas();
+}
+
+function handleCanvasClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.round((e.clientX - rect.left) * (canvas.width / rect.width));
+  const y = Math.round((e.clientY - rect.top) * (canvas.height / rect.height));
+  document.getElementById('posX').value = x;
+  document.getElementById('posY').value = y;
+  redrawCanvas();
+}
+
+function redrawCanvas() {
+  if (!templateImg || canvas.width === 0) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(templateImg, 0, 0);
+  const name = document.getElementById('previewName').value || 'Sample Name';
+  const fontSize = parseInt(document.getElementById('fontSize').value) || 60;
+  const fontFamily = document.getElementById('fontFamily').value;
+  const fontWeight = document.getElementById('fontWeight').value;
+  const color = document.getElementById('nameColor').value;
+  const center = document.getElementById('centerAlign').checked;
+  const py = parseInt(document.getElementById('posY').value) || Math.round(canvas.height * 0.48);
+  const px = parseInt(document.getElementById('posX').value) || Math.round(canvas.width / 2);
+
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  if (center) { ctx.textAlign = 'center'; ctx.fillText(name, canvas.width / 2, py); }
+  else { ctx.textAlign = 'left'; ctx.fillText(name, px, py); }
+
+  // Crosshair
+  const dotX = center ? canvas.width / 2 : px;
+  ctx.strokeStyle = 'rgba(122,170,138,0.6)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath(); ctx.moveTo(dotX, py - 32); ctx.lineTo(dotX, py + 32); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dotX - 32, py); ctx.lineTo(dotX + 32, py); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function getNameStyle() {
+  return {
+    font_size: parseInt(document.getElementById('fontSize').value) || 60,
+    font_weight: document.getElementById('fontWeight').value === '700' || document.getElementById('fontWeight').value === '600' ? 'bold' : 'regular',
+    color: document.getElementById('nameColor').value,
+    pos_x: parseInt(document.getElementById('posX').value) || null,
+    pos_y: parseInt(document.getElementById('posY').value) || Math.round((templateImg?.naturalHeight || 800) * 0.48),
+    center_align: document.getElementById('centerAlign').checked,
+  };
+}
+
+// ── Step 3 ─────────────────────────────────────────────────────
+function addVolunteer() {
+  const name = document.getElementById('newName').value.trim();
+  const email = document.getElementById('newEmail').value.trim();
+  if (!name) { toast('Please enter a name.', 'error'); return; }
+  if (!email || !email.includes('@')) { toast('Please enter a valid email.', 'error'); return; }
+  volunteers.push({ name, email, status: 'pending' });
+  document.getElementById('newName').value = '';
+  document.getElementById('newEmail').value = '';
+  document.getElementById('newName').focus();
+  renderVolTable();
+  toast(`${name} added!`, 'success');
+}
+
+function removeVolunteer(i) { volunteers.splice(i, 1); renderVolTable(); }
+
+function renderVolTable() {
+  const tbody = document.getElementById('volTbody');
+  const table = document.getElementById('volTable');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('volCount').textContent = volunteers.length;
+  document.getElementById('nextStep3').disabled = volunteers.length === 0;
+  if (!volunteers.length) { table.style.display = 'none'; empty.style.display = 'block'; return; }
+  table.style.display = 'table'; empty.style.display = 'none';
+  tbody.innerHTML = volunteers.map((v, i) => `
+    <tr>
+      <td style="color:var(--gray);font-size:0.82rem;">${i+1}</td>
+      <td style="font-weight:500;">${esc(v.name)}</td>
+      <td style="color:var(--gray);">${esc(v.email)}</td>
+      <td><span class="tag-${v.status}">${v.status==='sent'?'✓ Sent':v.status==='failed'?'✗ Failed':'⏳ Pending'}</span></td>
+      <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.8rem;" onclick="removeVolunteer(${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function importCSV(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let added = 0;
+    e.target.result.split(/\r?\n/).filter(l=>l.trim()).forEach(line => {
+      const parts = line.split(',').map(p=>p.trim().replace(/^"|"$/g,''));
+      const [name, email] = parts;
+      if (!name || !email || name.toLowerCase()==='name') return;
+      if (email.includes('@')) { volunteers.push({name,email,status:'pending'}); added++; }
+    });
+    renderVolTable();
+    toast(`${added} volunteer(s) imported!`, 'success');
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function downloadCSVTemplate() {
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('Name,Email\nAhmed Hassan,ahmed@example.com\nSara Khan,sara@example.com');
+  a.download = 'volunteers_template.csv';
+  a.click();
+}
+
+// ── Step 4 ─────────────────────────────────────────────────────
+const previewCanvas = document.getElementById('previewCanvas');
+const previewCtx = previewCanvas.getContext('2d');
+
+function setupSendPanel() {
+  const sel = document.getElementById('previewSelect');
+  sel.innerHTML = '<option value="">-- Select volunteer --</option>' +
+    volunteers.map((v,i) => `<option value="${i}">${esc(v.name)}</option>`).join('');
+  if (volunteers.length > 0) { sel.value = '0'; updatePreview(); }
+}
+
+function renderCertToCanvas(targetCanvas, name) {
+  targetCanvas.width = templateImg.naturalWidth;
+  targetCanvas.height = templateImg.naturalHeight;
+  const c = targetCanvas.getContext('2d');
+  c.drawImage(templateImg, 0, 0);
+  const fontSize = parseInt(document.getElementById('fontSize').value) || 60;
+  const fontFamily = document.getElementById('fontFamily').value;
+  const fontWeight = document.getElementById('fontWeight').value;
+  const color = document.getElementById('nameColor').value;
+  const center = document.getElementById('centerAlign').checked;
+  const py = parseInt(document.getElementById('posY').value) || Math.round(targetCanvas.height * 0.48);
+  const px = parseInt(document.getElementById('posX').value) || Math.round(targetCanvas.width / 2);
+  c.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  c.fillStyle = color;
+  c.textBaseline = 'middle';
+  if (center) { c.textAlign = 'center'; c.fillText(name, targetCanvas.width / 2, py); }
+  else { c.textAlign = 'left'; c.fillText(name, px, py); }
+}
+
+function updatePreview() {
+  const i = document.getElementById('previewSelect').value;
+  if (i === '' || !volunteers[i]) return;
+  renderCertToCanvas(previewCanvas, volunteers[i].name);
+}
+
+function downloadCurrentCert() {
+  const i = document.getElementById('previewSelect').value;
+  if (i === '' || !volunteers[i]) { toast('Select a volunteer first', 'error'); return; }
+  const tmp = document.createElement('canvas');
+  renderCertToCanvas(tmp, volunteers[i].name);
+  const a = document.createElement('a');
+  a.href = tmp.toDataURL('image/png');
+  a.download = `Certificate_${volunteers[i].name.replace(/\s+/g,'_')}.png`;
+  a.click();
+}
+
+async function downloadAllCerts() {
+  if (!volunteers.length) { toast('No volunteers added.', 'error'); return; }
+  toast('Generating ZIP...');
+  const zip = new JSZip();
+  const folder = zip.folder('Khalq_Certificates');
+  for (const v of volunteers) {
+    const tmp = document.createElement('canvas');
+    renderCertToCanvas(tmp, v.name);
+    folder.file(`Certificate_${v.name.replace(/\s+/g,'_')}.png`, tmp.toDataURL('image/png').split(',')[1], {base64:true});
+  }
+  const blob = await zip.generateAsync({type:'blob'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Khalq_Certificates.zip';
+  a.click();
+  toast(`${volunteers.length} certificates downloaded!`, 'success');
+}
+
+async function sendAll() {
+  const sendBtn = document.getElementById('sendBtn');
+  const prog = document.getElementById('sendProgress');
+  const fill = document.getElementById('progressFill');
+  const label = document.getElementById('progressLabel');
+  const pct = document.getElementById('progressPct');
+
+  sendBtn.disabled = true;
+  sendBtn.classList.add('btn-spin');
+  prog.style.display = 'block';
+  fill.style.width = '10%';
+  label.textContent = 'Connecting to server...';
+  pct.textContent = '10%';
+
+  try {
+    const payload = {
+      certificate_base64: templateBase64,
+      volunteers: volunteers.map(v => ({name: v.name, email: v.email})),
+      name_style: getNameStyle(),
+      from_name: document.getElementById('fromName').value,
+      subject: document.getElementById('emailSubject').value,
+      body_template: document.getElementById('emailBody').value,
+    };
+
+    fill.style.width = '30%';
+    label.textContent = 'Sending certificates...';
+    pct.textContent = '30%';
+
+    const res = await fetch(`${API_BASE}/api/send`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+
+    fill.style.width = '90%';
+    pct.textContent = '90%';
+
+    if (res.status === 401) {
+      toast('Session expired. Please sign in again.', 'error');
+      setTimeout(() => showLogin(), 1500);
+      return;
+    }
+
+    const data = await res.json();
+    fill.style.width = '100%';
+    pct.textContent = '100%';
+    label.textContent = 'Done!';
+
+    // Update statuses
+    data.results.forEach(r => {
+      const v = volunteers.find(v => v.email === r.email);
+      if (v) v.status = r.status;
+    });
+    renderVolTable();
+
+    // Show summary
+    const summaryCard = document.getElementById('summaryCard');
+    summaryCard.style.display = 'block';
+    summaryCard.innerHTML = `
+      <div class="card-title" style="color:${data.failed===0?'var(--success)':'var(--gold)'};">
+        ${data.failed===0 ? '✓ All Certificates Sent!' : `⚠ ${data.sent} sent, ${data.failed} failed`}
+      </div>
+      <p style="color:var(--gray);margin:8px 0 16px;">
+        Sent <strong>${data.sent}</strong> of <strong>${data.total}</strong> certificates successfully.
+      </p>
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Status</th></tr></thead>
+        <tbody>
+          ${data.results.map(r=>`
+            <tr>
+              <td style="font-weight:500;">${esc(r.name)}</td>
+              <td style="color:var(--gray);">${esc(r.email)}</td>
+              <td><span class="tag-${r.status}">${r.status==='sent'?'✓ Sent':'✗ Failed'}</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+    toast(data.failed === 0 ? 'All certificates sent!' : `${data.sent}/${data.total} sent`, data.failed === 0 ? 'success' : '');
+  } catch(e) {
+    toast('Error connecting to server. Check your API URL.', 'error');
+    label.textContent = 'Error';
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.classList.remove('btn-spin');
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────
+checkAuth();
+</script>
+</body>
+</html>
